@@ -1,33 +1,15 @@
 import fastify from 'fastify'
-import { z } from 'zod'
-import { PrismaClient } from  '@prisma/client'
+import {serializerCompiler, validatorCompiler} from 'fastify-type-provider-zod'
+import { createEvent } from './routes/create-events'
+import { registerForEvent } from './routes/register-for-event'
 
 const app = fastify()
 
-const prisma = new PrismaClient({
-  log:['query'],
-})
+app.setValidatorCompiler(validatorCompiler)
+app.setSerializerCompiler(serializerCompiler)
 
-app.post('/events', async (request, reply) => {
-  const createEventSchema = z.object({
-    title: z.string().min(4),
-    details: z.string().nullable(),
-    maximumAttendees: z.number().int().positive().nullable()
-  })
-
-  const data = createEventSchema.parse(request.body)
-
-  await prisma.event.create({
-    data: {
-      title: data.title,
-      details: data.details,
-      maximumAttendees: data.maximumAttendees,
-      slug: new Date().toISOString()
-    }
-  })
-
-  return reply.status(201)
-})
+app.register(createEvent)
+app.register(registerForEvent)
 
 app.listen({
   port: 3333
